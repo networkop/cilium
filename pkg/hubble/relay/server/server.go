@@ -36,12 +36,12 @@ import (
 
 var (
 	// ErrNoTransportCredentials is returned when no transport credentials is
-	// set unless WithInsecure() is provided.
-	ErrNoTransportCredentials = errors.New("no transport credentials set (use WithInsecure() or set credentials)")
+	// set for the server unless WithInsecureServer() is provided.
+	ErrNoTransportCredentials = errors.New("no transport credentials set (use WithInsecureServer() or set credentials)")
 
 	// ErrNoClientTLSConfig is returned when no client TLS config is set
-	// unlesss WithInsecure() is provided.
-	ErrNoClientTLSConfig = errors.New("no client TLS config set (use WithInsecure() or set client TLS config)")
+	// unlesss WithInsecureClient() is provided.
+	ErrNoClientTLSConfig = errors.New("no client TLS config set (use WithInsecureClient() or set client TLS config)")
 )
 
 // Server is a proxy that connects to a running instance of hubble gRPC server
@@ -62,8 +62,11 @@ func New(options ...Option) (*Server, error) {
 			return nil, fmt.Errorf("failed to apply option: %v", err)
 		}
 	}
-	if opts.clientTLSConfig == nil && !opts.insecure {
+	if opts.clientTLSConfig == nil && !opts.insecureClient {
 		return nil, ErrNoClientTLSConfig
+	}
+	if opts.serverCredentials == nil && !opts.insecureServer {
+		return nil, ErrNoTransportCredentials
 	}
 	logger := logging.DefaultLogger.WithField(logfields.LogSubsys, "hubble-relay")
 	logging.ConfigureLogLevel(opts.debug)
@@ -101,10 +104,10 @@ func (s *Server) Serve() error {
 	s.log.WithField("options", fmt.Sprintf("%+v", s.opts)).Info("Starting server...")
 
 	switch {
-	case s.opts.credentials != nil:
-		s.server = grpc.NewServer(grpc.Creds(s.opts.credentials))
-	case s.opts.insecure:
+	case s.opts.insecureServer:
 		s.server = grpc.NewServer()
+	case s.opts.serverCredentials != nil:
+		s.server = grpc.NewServer(grpc.Creds(s.opts.serverCredentials))
 	default:
 		return ErrNoTransportCredentials
 	}
