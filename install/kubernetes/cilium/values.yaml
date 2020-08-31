@@ -541,6 +541,8 @@ global:
     # Configures the hubble-relay subchart
     relay:
       enabled: false
+      tls:
+        auto: true
 
   # CI specific options: DO NOT USE IN PRODUCTION.
   ci:
